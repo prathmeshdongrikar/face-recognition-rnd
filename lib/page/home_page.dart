@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 
 import '../utils/local_db.dart';
@@ -37,8 +39,11 @@ class HomePage extends StatelessWidget {
           'Logout',
           style: TextStyle(fontSize: 20),
         ),
-        onPressed: () => Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        ),
+        onPressed: () async {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        },
       );
 }

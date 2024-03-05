@@ -81,8 +81,7 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         image,
         facesDetected[0],
         widget.user != null,
-        'pd',
-        // widget.user != null ? widget.user!.name! : controller.text
+        widget.user != null ? widget.user!.name! : controller.text
       );
       if (widget.user == null) {
         // register case
@@ -105,7 +104,6 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
 
   Future<void> takePicture() async {
     if (facesDetected.isNotEmpty) {
-      await _cameraController.stopImageStream();
       XFile file = await _cameraController.takePicture();
       file = XFile(file.path);
       _cameraController.setFlashMode(FlashMode.off);
@@ -115,6 +113,8 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
           builder: (context) =>
               const AlertDialog(content: Text('No face detected!')));
     }
+
+      await _cameraController.stopImageStream();
   }
 
   @override

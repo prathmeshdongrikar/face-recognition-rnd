@@ -35,7 +35,7 @@ class MLService {
       User? user = LocalDB.getUser();
       List userArray = user.array!;
       int minDist = 999;
-      double threshold = 1.5;
+      double threshold = 1;
       var dist = euclideanDistance(predictedArray!, userArray);
       if (dist <= threshold && dist < minDist) {
         return user;
