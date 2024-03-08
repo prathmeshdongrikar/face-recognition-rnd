@@ -19,17 +19,16 @@ img_lib.Image? convertToImage(CameraImage image) {
 
 img_lib.Image _convertBGRA8888(CameraImage image) {
   return img_lib.Image.fromBytes(
-    image.width,
-    image.height,
-    image.planes[0].bytes,
-    format: img_lib.Format.bgra,
+    width: image.width,
+    height: image.height,
+    bytes: image.planes[0].bytes.buffer,
   );
 }
 
 img_lib.Image _convertYUV420(CameraImage image) {
   int width = image.width;
   int height = image.height;
-  var img = img_lib.Image(width, height);
+  var img = img_lib.Image(width: width, height: height);
   const int hexFF = 0xFF000000;
   final int uvyButtonStride = image.planes[1].bytesPerRow;
   final int? uvPixelStride = image.planes[1].bytesPerPixel;
@@ -46,7 +45,7 @@ img_lib.Image _convertYUV420(CameraImage image) {
           .round()
           .clamp(0, 255);
       int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
-      img.data[index] = hexFF | (b << 16) | (g << 8) | r;
+      img.frameIndex = hexFF | (b << 16) | (g << 8) | r;
     }
   }
 

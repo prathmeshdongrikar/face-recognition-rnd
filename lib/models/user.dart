@@ -1,3 +1,5 @@
+import 'package:hive_flutter/hive_flutter.dart';
+
 class User {
   static const String nameKey = "user_name";
   static const String arrayKey = "user_array";
@@ -17,3 +19,4 @@ class User {
         arrayKey: array,
       };
 }
+

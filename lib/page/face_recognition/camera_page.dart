@@ -6,6 +6,7 @@ import '../../models/user.dart';
 import '../../widgets/common_widgets.dart';
 import '../home_page.dart';
 import 'ml_service.dart';
+import 'dart:async';
 
 List<CameraDescription>? cameras;
 
@@ -37,40 +38,37 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
   InputImageRotation rotationIntToImageRotation(int rotation) {
     switch (rotation) {
       case 90:
-        return InputImageRotation.Rotation_90deg;
+        return InputImageRotation.rotation90deg;
       case 180:
-        return InputImageRotation.Rotation_180deg;
+        return InputImageRotation.rotation180deg;
       case 270:
-        return InputImageRotation.Rotation_270deg;
+        return InputImageRotation.rotation270deg;
       default:
-        return InputImageRotation.Rotation_0deg;
+        return InputImageRotation.rotation0deg;
     }
   }
 
   Future<void> detectFacesFromImage(CameraImage image) async {
-    InputImageData _firebaseImageMetadata = InputImageData(
-      imageRotation: rotationIntToImageRotation(
-          _cameraController.description.sensorOrientation),
-      inputImageFormat: InputImageFormat.BGRA8888,
-      size: Size(image.width.toDouble(), image.height.toDouble()),
-      planeData: image.planes.map(
-        (Plane plane) {
-          return InputImagePlaneMetadata(
-            bytesPerRow: plane.bytesPerRow,
-            height: plane.height,
-            width: plane.width,
-          );
-        },
-      ).toList(),
-    );
+    for (var plane in image.planes) {
+      InputImageMetadata firebaseImageMetadata = InputImageMetadata(
+        bytesPerRow: plane.bytesPerRow,
+        rotation: rotationIntToImageRotation(
+            _cameraController.description.sensorOrientation),
+        format: InputImageFormat.yuv420,
+        size: plane.width != null && plane.height != null
+            ? Size(plane.width!.toDouble(), plane.height!.toDouble())
+            : const Size(250, 250),
+      );
 
-    InputImage _firebaseVisionImage = InputImage.fromBytes(
-      bytes: image.planes[0].bytes,
-      inputImageData: _firebaseImageMetadata,
-    );
-    var result = await _faceDetector.processImage(_firebaseVisionImage);
-    if (result.isNotEmpty) {
-      facesDetected = result;
+      InputImage firebaseVisionImage = InputImage.fromBytes(
+        bytes: plane.bytes,
+        metadata: firebaseImageMetadata,
+      );
+      var result = await _faceDetector.processImage(firebaseVisionImage);
+      if (result.isNotEmpty) {
+        facesDetected = result;
+        return;
+      }
     }
   }
 
@@ -78,11 +76,10 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     await detectFacesFromImage(image);
     if (facesDetected.isNotEmpty) {
       User? user = await _mlService.predict(
-        image,
-        facesDetected[0],
-        widget.user != null,
-        widget.user != null ? widget.user!.name! : controller.text
-      );
+          image,
+          facesDetected[0],
+          widget.user != null,
+          widget.user != null ? widget.user!.name! : controller.text);
       if (widget.user == null) {
         // register case
         Navigator.pop(context);
@@ -113,17 +110,16 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
           builder: (context) =>
               const AlertDialog(content: Text('No face detected!')));
     }
-
-      await _cameraController.stopImageStream();
+    await _cameraController.stopImageStream();
   }
 
   @override
   void initState() {
-    _cameraController = CameraController(cameras![1], ResolutionPreset.high);
+    _cameraController = CameraController(cameras![1], ResolutionPreset.ultraHigh);
     initializeCamera();
     _faceDetector = GoogleMlKit.vision.faceDetector(
-      const FaceDetectorOptions(
-        mode: FaceDetectorMode.accurate,
+      FaceDetectorOptions(
+        performanceMode: FaceDetectorMode.accurate,
       ),
     );
     super.initState();
@@ -174,21 +170,18 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
                             text: "Capture",
                             context: context,
                             isClickable: true,
-                            onTap: () {
+                            onTap: () async {
                               bool canProcess = false;
                               try {
-                                
-                                  _cameraController.startImageStream(
-                                      (CameraImage image) async {
-                                    if (canProcess) return;
-                                    canProcess = true;
-                                    _predictFacesFromImage(image: image)
-                                        .then((value) {
-                                      canProcess = false;
-                                    });
-                                    return null;
-                                  });
-                                
+                                _cameraController.startImageStream(
+                                    (CameraImage image) async {
+                                  if (canProcess) return;
+                                  canProcess = true;
+                                  await _predictFacesFromImage(image: image);
+                                  await Future.delayed(
+                                      const Duration(milliseconds: 900));
+                                  canProcess = false;
+                                });
                               } catch (e) {
                                 print("Error starting image stream: $e");
                                 // Handle the exception

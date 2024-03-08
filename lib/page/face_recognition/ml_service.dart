@@ -61,16 +61,17 @@ class MLService {
         delegate = GpuDelegateV2(
             options: GpuDelegateOptionsV2(
           isPrecisionLossAllowed: false,
-          inferencePreference: TfLiteGpuInferenceUsage.fastSingleAnswer,
-          inferencePriority1: TfLiteGpuInferencePriority.minLatency,
-          inferencePriority2: TfLiteGpuInferencePriority.auto,
-          inferencePriority3: TfLiteGpuInferencePriority.auto,
+          // inferencePreference: TfLiteGpuInferenceUsage.fastSingleAnswer,
+          // inferencePriority1: TfLiteGpuInferencePriority.minLatency,
+          // inferencePriority2: TfLiteGpuInferencePriority.auto,
+          // inferencePriority3: TfLiteGpuInferencePriority.auto,
         ));
       } else if (Platform.isIOS) {
         delegate = GpuDelegate(
           options: GpuDelegateOptions(
-              allowPrecisionLoss: true,
-              waitType: TFLGpuDelegateWaitType.active),
+            allowPrecisionLoss: true,
+            // waitType: TFLGpuDelegateWaitType.active
+          ),
         );
       }
       var interpreterOptions = InterpreterOptions()..addDelegate(delegate!);
@@ -85,7 +86,7 @@ class MLService {
 
   List _preProcess(CameraImage image, Face faceDetected) {
     imglib.Image croppedImage = _cropFace(image, faceDetected);
-    imglib.Image img = imglib.copyResizeCropSquare(croppedImage, 112);
+    imglib.Image img = imglib.copyResizeCropSquare(croppedImage, size: 112);
 
     Float32List imageAsList = _imageToByteListFloat32(img);
     return imageAsList;
@@ -97,13 +98,13 @@ class MLService {
     double y = faceDetected.boundingBox.top - 10.0;
     double w = faceDetected.boundingBox.width + 10.0;
     double h = faceDetected.boundingBox.height + 10.0;
-    return imglib.copyCrop(
-        convertedImage, x.round(), y.round(), w.round(), h.round());
+    return imglib.copyCrop(convertedImage,
+        x: x.round(), y: y.round(), width: w.round(), height: h.round());
   }
 
   imglib.Image _convertCameraImage(CameraImage image) {
     var img = convertToImage(image);
-    var img1 = imglib.copyRotate(img!, -90);
+    var img1 = imglib.copyRotate(img!, angle: -90);
     return img1;
   }
 
@@ -115,10 +116,16 @@ class MLService {
     for (var i = 0; i < 112; i++) {
       for (var j = 0; j < 112; j++) {
         var pixel = image.getPixel(j, i);
-        buffer[pixelIndex++] = (imglib.getRed(pixel) - 128) / 128;
-        buffer[pixelIndex++] = (imglib.getGreen(pixel) - 128) / 128;
-        buffer[pixelIndex++] = (imglib.getBlue(pixel) - 128) / 128;
-      }
+        buffer[pixelIndex++] = ((imglib.uint32ToRed(pixel.x) - 128) +
+                (imglib.uint32ToRed(pixel.y) - 128)) /
+            128;
+        buffer[pixelIndex++] = ((imglib.uint32ToGreen(pixel.x) - 128) +
+                (imglib.uint32ToGreen(pixel.x) - 128)) /
+            128;
+        buffer[pixelIndex++] = ((imglib.uint32ToBlue(pixel.x) - 128) +
+                (imglib.uint32ToBlue(pixel.y) - 128)) /
+            128;
+      } 
     }
     return convertedBytes.buffer.asFloat32List();
   }
